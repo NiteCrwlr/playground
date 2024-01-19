@@ -6,3 +6,9 @@ It will then report IP-Address, Device Type and Status (IDLE/RUNNING)
 
 You can use this for your Home Assistant integration as example.  
 It does not need any login to your Snapmaker.
+
+
+# SNStatusV2.py
+
+This is a new version, getting awesome more infos from Snapmaker API.   
+See: https://community.home-assistant.io/t/adding-snapmaker-to-ha-need-help-on-making-udp-updatable-sensors/655036/12?u=guybrush_t  
