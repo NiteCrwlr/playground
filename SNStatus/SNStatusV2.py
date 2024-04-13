@@ -11,7 +11,7 @@ from datetime import timedelta
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 haToken = "<hatoken>" # Set your HomeAssistant API Token
-whUrl = 'https://<ipadress>:8123/api/webhook/wh-snapmakera350' # Set to your HomeAssistant WebHook URL
+whUrl = 'https://<ipaddress>:8123/api/webhook/wh-snapmakera350' # Set to your HomeAssistant WebHook URL
 bufferSize = 1024
 msg = b'discover'
 destPort = 20054
@@ -19,8 +19,9 @@ sockTimeout = 1.0
 retries = 5
 retryCounter = 0
 snReply = {}
-connectIP = '';
+connectIP = ''
 tokenfile = '/home/pi/SmartHome/SnapMaker/SMtoken.txt' # Set to writable path, file will be created if not exists.
+snWorking = ''
 
 # Main Program
 def main():
@@ -31,16 +32,21 @@ def main():
     
     # Get Status and IP of Snapmaker
     checkState(UDPClientSocket,msg,destPort,retries)
-    if validate_ip_address(snReply.get("ip")):
-        connectIP = snReply.get("ip")
+    if validate_ip_address(snReply.get("snIP")):
+        connectIP = snReply.get("snIP")
         print("Snapmaker found:", connectIP)
-        SMtoken = getSMToken(connectIP)
-        print("Connecting with Token:",SMtoken)
-        postIt(readStatus(SMtoken))
-        # Not yet used
-        #readStatusEnclosure(SMtoken)
+        if snWorking == 'IDLE':
+          SMtoken = getSMToken(connectIP)
+          postIt(snReply) 
+        else:
+          SMtoken = getSMToken(connectIP)
+          print("Connecting with Token:",SMtoken)
+          postIt(readStatus(SMtoken))
+          # Not yet used
+          #readStatusEnclosure(SMtoken)
         
     else:
+        postIt(snReply)
         print("No Snapmaker found.")
      
 
@@ -82,14 +88,6 @@ def getSMToken(connectIP):
         formData = {'token' : SMtoken}
         r = requests.post(SMurl, data=formData, headers=headers)
         return(SMtoken)
-        # Do keepalive
-        #while True:
-        #    r = requests.get(SMstatus+SMtoken)
-        #    print(r.text)
-        #    time.sleep(2)
-        #    r = requests.get(SMenclosure+SMtoken)
-        #    print(r.text)
-        #    time.sleep(2)
 
 
 # Read Status of Snapmaker 2.0 via API
@@ -158,6 +156,7 @@ def readStatusEnclosure(SMtoken):
 #  'Snapmaker@X.X.X.X|model:Snapmaker 2 Model A350|status:RUNNING'
 def checkState(UDPClientSocket,msg,destPort,retries):
     global snReply
+    global snWorking
     global retryCounter
     UDPClientSocket.sendto(msg, ("255.255.255.255", destPort))
     try:
@@ -169,11 +168,15 @@ def checkState(UDPClientSocket,msg,destPort,retries):
         snIP, snIPVal = snIP.split('@')
         snModel, snModelVal = snModel.split(':')
         snStatus, snStatusVal = snStatus.split(':')
-        snReply = {"ip":snIPVal, "model":snModelVal, "state":snStatusVal}
+        snWorking = snStatusVal
+        snReply = {"snIP":snIPVal, "model":snModelVal, "snStatus":snStatusVal}
     except socket.timeout:
         retryCounter += 1
         if (retryCounter==retries): 
-          snReply = {"ip":"N/A", "model":"N/A", "state":"OFFLINE"}
+          snReply = {"snIP":"N/A", "model":"N/A", "snStatus":"OFFLINE",
+                     "snNozzleTemp":0,"snNozzleTaTemp":0,
+                     "snHeatedBedTemp":0,"snHeatedBedTaTemp":0,"snFileName":"N/A",
+                     "snProgress":0,"snElapsedTime":"00:00:00","snRemainingTime":"00:00:00"}
           return
         else:
           checkState(UDPClientSocket,msg,destPort,retries);
