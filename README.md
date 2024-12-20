@@ -1,3 +1,4 @@
 # playground
 
-Hi this are some tests.
+Hi!
+Here are some tests.
